@@ -372,6 +372,10 @@ class Layer:
             width, height = 256, 256
             tile = provider.renderTile(width, height, srs, coord)
 
+        elif hasattr(provider, 'renderStaticMap'):
+            width, height = self.staticmap.getSize()
+            tile = provider.renderStaticMap(self.staticmap)
+            
         else:
             raise KnownUnknown('Your provider lacks renderTile and renderArea methods.')
 
@@ -407,7 +411,7 @@ class Layer:
                     tile = subtile
                 
                 _addRecentTile(self, other, format, body)
-        
+
         return tile
     
     def envelope(self, coord):
