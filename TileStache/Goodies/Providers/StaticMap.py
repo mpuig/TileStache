@@ -182,14 +182,15 @@ class StaticMaps:
         zoomLon = 21 - int(math.log(x, 2))
         y = ((maxLon-minLon)*merc_radius*math.pi) / (180*self.width)
         zoomLat = 21 - int(math.log(y, 2))
-        self.zoom = min(zoomLat, zoomLon)-180
+        self.zoom = min(zoomLat, zoomLon)
+        self.zoom = min(self.zoom, 13)
         logging.debug('TileStache.Providers.StaticMaps.addPath() zoom:%d', self.zoom)
         
     
     def getWKT(self):
         line = "LINESTRING(%s)" % ",".join(["%s %s" % (p.lon, p.lat) for p in self.path.polygon])
         logging.debug('TileStache.Providers.StaticMaps.getWKT() wkt: %s', line)
-        #return line
+        return line
         poly = "POLYGON((%s))" % ",".join(["%s %s" % (p.lon, p.lat) for p in self.path.polygon])
         logging.debug('TileStache.Providers.StaticMaps.getWKT() wkt: %s', poly)
         return poly
@@ -219,7 +220,7 @@ class Marker:
         start_time = time()
         
         if self.mapnik is None:
-            self.mapnik = mapnik.Map(0, 0)
+            self.mapnik = mapnik.Map(200, 200)
             #mapnik.load_map(self.mapnik, str(self.mapfile))
             logging.debug('TileStache.Providers.StaticMaps.renderStaticMap() %.3f to load %s', time() - start_time, self.mapfile)
         
@@ -228,7 +229,8 @@ class Marker:
             scheme, h, path, q, p, f = urlparse(staticmap.marker.icon)
             fullpath = pathjoin(self.iconsfullpath, h, path[1:])
             relativepath = pathjoin(self.iconspath, h, path[1:])
-            print fullpath
+            #relativepath = os.path.join(self.iconspath, os.path.basename(staticmap.marker.icon))
+            #fullpath = os.path.join(self.layer.config.dirpath, relativepath)
             if not exists(fullpath):
                 logging.debug('TileStache.Providers.StaticMaps.renderStaticMap() - Downloading icon %s', staticmap.marker.icon)
                 url = staticmap.marker.icon
@@ -295,10 +297,11 @@ class Marker:
             mapnik.render(self.mapnik, img)
             watermark = mapnik.Image.open('examples/staticmaps/watermark.png')
             x_offset = 5
-            y_offset = staticmap.height-20
-            opacity = 0.5
+            y_offset = staticmap.height-25
+            opacity = 1
             img.blend(x_offset, y_offset, watermark, opacity)
             global_mapnik_lock.release()
+        
         
         img = Image.fromstring('RGBA', (staticmap.width, staticmap.height), img.tostring())
         logging.debug('TileStache.Providers.StaticMaps.renderStaticMap() %dx%d in %.3f from %s', staticmap.width, staticmap.height, time() - start_time, self.mapfile)
@@ -334,7 +337,6 @@ class Path:
                 logging.debug('TileStache.Providers.StaticMaps.renderStaticMap() Path center @ lat:%.4f, lon:%.4f', 
                     staticmap.path.center.lat, staticmap.path.center.lon)
                     
-                #wkt = 'POLYGON((39.0234375 62.578125,20.0390625 58.359375,15.1171875 45.703125,15.8203125 35.15625,24.2578125 30.9375,35.5078125 30.234375,55.1953125 38.671875,58.7109375 46.40625,54.4921875 53.4375,51.6796875 58.359375,49.5703125 61.171875,39.0234375 62.578125))'
                 # Features
                 f = mapnik.Feature(1)
                 f.add_geometries_from_wkt(staticmap.getWKT())
@@ -342,13 +344,13 @@ class Path:
                 ds = mapnik.MemoryDatasource()
                 ds.add_feature(f)
 
-                poly = mapnik.PolygonSymbolizer()
-                line = mapnik.LineSymbolizer()
+                #poly = mapnik.PolygonSymbolizer()
+                line = mapnik.LineSymbolizer(mapnik.Color('#f20000'),2)
                 
                 s = mapnik.Style()
                 r = mapnik.Rule()
-                #r.symbols.append(poly)
-                r.symbols.extend([poly, line])
+                r.symbols.append(line)
+                #r.symbols.extend([poly, line])
                 #r.filter = mapnik.Filter("[Name] = 'route'")
                 s.rules.append(r)
                 self.mapnik.append_style('Route Style', s)
