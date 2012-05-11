@@ -79,14 +79,10 @@ import urllib2
 import urllib
 
 try:
-    import mapnik2 as mapnik
+    from PIL import Image
 except ImportError:
-    try:
-        import mapnik
-    except ImportError:
-        # It's possible to get by without mapnik,
-        # if you don't plan to use the mapnik provider.
-        pass
+    # On some systems, PIL.Image is known as Image.
+    import Image
 
 import ModestMaps
 from ModestMaps.Core import Point, Coordinate
